@@ -102,6 +102,13 @@ client.on("messageCreate", function(message)
         }
 
         fullMessage = `You rolled: ${total} ( ${outMessage}`;
+
+        if (fullMessage.length > 2000)
+        {
+            message.channel.send("Error: more than 2000 characters.");
+            return;
+        }
+
         message.channel.send(fullMessage);
     }
 });
