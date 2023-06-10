@@ -4,7 +4,8 @@ const {Client, GatewayIntentBits} = require("discord.js");
 
 const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]});
 
-const prefix = "@";
+const prefix = "/";
+const commandList = "Syllabus\nWelcome\nRoll";
 console.log("starting");
 
 client.on("messageCreate", function(message)
@@ -25,23 +26,30 @@ client.on("messageCreate", function(message)
     const args = commandBody.split(' ');
     const command = args.shift().toLowerCase();
 
-    if (command == "ping")
+    if (command == "welcome")
     {
         console.log("ping command");
         const timeTaken = Date.now() - message.createdTimestamp;
-        message.reply(`Pong! This message had a latency of ${timeTaken}ms`);
+        message.reply(`This message had a latency of ${timeTaken}ms`);
     }
     if (command == "roll")
     {
         console.log("roll command");
         error = 0;
 
-        if (!args[0].includes('d'))
+        if (!args[0])
+        {
+            message.channel.send("Error: no parameters.");
+            return;
+        }
+
+        arg = args[0].toLowerCase();
+        if (!arg.includes('d'))
         {
             message.channel.send("Error: The must be a 'd' or 'D' keychar in between the numbers.");
-            error++;
+            return;
         }
-        const subArgs = args[0].split('d');
+        const subArgs = arg.split('d');
         console.log(subArgs[0]);
         //console.log(args[0][1]);
         console.log(subArgs[2]);
@@ -66,9 +74,9 @@ client.on("messageCreate", function(message)
             error++;
             //return;
         }*/
-        if (isNaN(dice))
+        if (isNaN(dice) || dice <= 1)
         {
-            message.channel.send("Error: Second number must be a whole number.");
+            message.channel.send("Error: Second number must be a whole number greater than 1.");
             error++;
             //return;
         }
@@ -101,6 +109,18 @@ client.on("messageCreate", function(message)
             }
         }
 
+        if (args[1])
+        {
+            mod = parseInt(args[1]);
+            
+            if (isNaN(mod))
+            {
+                message.channel.send("Error: Invalid modifier (HINT: no spaces in between the sign and the number).");
+                return;
+            }
+            total += mod;
+        }
+
         fullMessage = `You rolled: ${total} ( ${outMessage}`;
 
         if (fullMessage.length > 2000)
@@ -111,6 +131,19 @@ client.on("messageCreate", function(message)
 
         message.channel.send(fullMessage);
     }
+
+    if (command == "syllabus")
+    {
+        if (args[0])
+        {
+            message.channel.send(commandHelp(args[0]));
+        }
+        else
+        {
+            message.channel.send(`Press '/' followed by a command to run it.\nType /syllabus [commandName] for help with a specific command\nCommands:\n${commandList}`);
+        }
+        
+    }
 });
 client.login(config.TOKEN);
 
@@ -119,4 +152,20 @@ function getRandomInt(min, max)
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+function commandHelp(arg)
+{
+    if (arg === "syllabus")
+    {
+        return("Have you read the syllabus?");
+    }
+    if (arg === "welcome")
+    {
+        return("Checks your latency\nFormat: /welcome");
+    }
+    if (arg === "roll")
+    {
+        return("Roll the dice\nFormat: /roll [number of die]d[number of sides] (+/-[modifier])");
+    }
 }
