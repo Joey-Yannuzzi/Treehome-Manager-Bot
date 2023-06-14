@@ -1,17 +1,11 @@
 const discord = require("discord.js");
 const config = require("./config.json");
-const file = require('fs');
 const {Client, GatewayIntentBits} = require("discord.js");
-const {joinVoiceChannel} = require('@discordjs/voice');
-const {VoiceConnectionStatus, AudioPlayerStatus} = require('@discordjs/voice');
-const {createAudioPlayer, createAudioResource} = require('@discordjs/voice');
-const play = require('play-dl');
 
-const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates]});
+const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]});
 
 const prefix = "!";
 const commandList = "Syllabus\nWelcome\nRoll";
-
 console.log("starting");
 
 client.on("messageCreate", function(message)
@@ -20,13 +14,6 @@ client.on("messageCreate", function(message)
     {
         return;
     }
-    const connection = joinVoiceChannel(
-    {
-            channelId: message.member.voice.channel.id,
-            guildId: message.member.voice.channel.guild.id,
-            adapterCreator: message.member.voice.channel.guild.voiceAdapterCreator,
-    });
-
     //console.log(message.content);
     if (message.author.bot)
     {
@@ -161,19 +148,6 @@ client.on("messageCreate", function(message)
         }
         
     }
-
-    if (command == "join")
-    {
-        song = args[0];
-        console.log("join command");
-        playAudio(connection, song);
-    }
-
-    if (command == "leave")
-    {
-        console.log("leave command");
-        connection.destroy();
-    }
 });
 client.login(config.TOKEN);
 
@@ -197,30 +171,5 @@ function commandHelp(arg)
     if (arg === "roll")
     {
         return("Roll the dice\nFormat: !roll [number of die]d[number of sides] (+/-[modifier])");
-    }
-}
-async function playAudio(connection, song)
-{
-    connection.on(VoiceConnectionStatus.Ready, (oldState, newState) =>
-    {
-        console.log("ready state");
-    });
-
-    const player = createAudioPlayer();
-    connection.subscribe(player);
-    if (song)
-    {
-        let stream = await play.stream(song);
-        let source = createAudioResource(stream.stream,
-            {
-                inputType: stream.type
-            });
-
-        player.play(source);
-    }
-    else
-    {
-        const source = createAudioResource(file.createReadStream('songs/Bustin.mp3'));
-        player.play(source);
     }
 }
