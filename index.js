@@ -11,21 +11,18 @@ const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIn
 
 const prefix = "!";
 const commandList = "Syllabus\nWelcome\nRoll";
+const player = createAudioPlayer();
+var connection;
+var subscription;
 
 console.log("starting");
 
-client.on("messageCreate", function(message)
+client.on("messageCreate", async function(message)
 {
     if (config.USER && message.author.id != config.USER)
     {
         return;
     }
-    const connection = joinVoiceChannel(
-    {
-            channelId: message.member.voice.channel.id,
-            guildId: message.member.voice.channel.guild.id,
-            adapterCreator: message.member.voice.channel.guild.voiceAdapterCreator,
-    });
 
     //console.log(message.content);
     if (message.author.bot)
@@ -162,17 +159,97 @@ client.on("messageCreate", function(message)
         
     }
 
-    if (command == "join")
+    if (command == "play")
     {
-        song = args[0];
-        console.log("join command");
-        playAudio(connection, song);
-    }
+        if (player.state.status === AudioPlayerStatus.Paused)
+        {
+            player.unpause();
+            message.channel.send("Unpausing");
+            return;
+        }
 
-    if (command == "leave")
+        var song = args;
+
+        if (!song[0])
+        {
+            message.channel.send("Error: no song requested");
+            return;
+        }
+
+        connection = joinVoiceChannel(
+        {
+            channelId: message.member.voice.channel.id,
+            guildId: message.member.voice.channel.guild.id,
+            adapterCreator: message.member.voice.channel.guild.voiceAdapterCreator,
+        });
+        console.log("join command");
+        connection.on(VoiceConnectionStatus.Ready, (oldState, newState) =>
     {
-        console.log("leave command");
-        connection.destroy();
+        console.log("ready state");
+    });
+
+    /*if (song)
+    {
+        let stream = await play.stream(song);
+        let source = createAudioResource(stream.stream,
+            {
+                inputType: stream.type
+            });
+
+        player.play(source);
+    }*/
+    if (song)
+    {
+        let oneStringSong = "";
+
+        for (var bogus = 0; bogus < song.length; bogus++)
+        {
+            oneStringSong += song[bogus] + " ";
+        }
+
+        console.log(oneStringSong);
+        let info = await play.search(oneStringSong, {limit: 1});
+        let stream = await play.stream(info[0].url);
+        let source = createAudioResource(stream.stream,
+            {
+                inputType: stream.type
+            });
+        
+        player.play(source);
+        subscription = connection.subscribe(player);
+        message.channel.send(`Playing ${info[0].url}`);
+    }
+        //playAudio(connection, player, song, message);
+    }
+    if (command == "pause")
+    {
+        if (player.state.status === AudioPlayerStatus.Paused)
+        {
+            message.channel.send("Error: Song already paused");
+            return;
+        }
+        if (player.state.status === AudioPlayerStatus.Idle)
+        {
+            message.channel.send("Error: no song playing");
+            return;
+        }
+        console.log("pause command");
+        player.pause();
+        message.channel.send("Pausing");
+        //setTimeout(() => player.unpause(), 5_000);
+    }
+    if (command == "stop")
+    {
+        if (player.state.status === AudioPlayerStatus.Idle)
+        {
+            message.channel.send("Error: no song playing");
+            return;
+        }
+
+        console.log("stop command");
+        player.stop();
+        message.channel.send("Stopping");
+        setTimeout(() => connection.destroy(), 30_000);
     }
 });
 client.login(config.TOKEN);
@@ -199,16 +276,15 @@ function commandHelp(arg)
         return("Roll the dice\nFormat: !roll [number of die]d[number of sides] (+/-[modifier])");
     }
 }
-async function playAudio(connection, song)
+async function playAudio(connection, player, song, message)
 {
     connection.on(VoiceConnectionStatus.Ready, (oldState, newState) =>
     {
         console.log("ready state");
     });
 
-    const player = createAudioPlayer();
     connection.subscribe(player);
-    if (song)
+    /*if (song)
     {
         let stream = await play.stream(song);
         let source = createAudioResource(stream.stream,
@@ -217,10 +293,25 @@ async function playAudio(connection, song)
             });
 
         player.play(source);
-    }
-    else
+    }*/
+    if (song)
     {
-        const source = createAudioResource(file.createReadStream('songs/Bustin.mp3'));
+        let oneStringSong = "";
+
+        for (var bogus = 0; bogus < song.length; bogus++)
+        {
+            oneStringSong += song[bogus] + " ";
+        }
+
+        console.log(oneStringSong);
+        let info = await play.search(oneStringSong, {limit: 1});
+        let stream = await play.stream(info[0].url);
+        let source = createAudioResource(stream.stream,
+            {
+                inputType: stream.type
+            });
+        
         player.play(source);
+        message.channel.send(`Playing ${info[0].url}`);
     }
 }
