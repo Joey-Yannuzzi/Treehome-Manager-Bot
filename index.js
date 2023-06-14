@@ -10,6 +10,10 @@ console.log("starting");
 
 client.on("messageCreate", function(message)
 {
+    if (config.USER && message.author.id != config.USER)
+    {
+        return;
+    }
     //console.log(message.content);
     if (message.author.bot)
     {
