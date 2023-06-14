@@ -1,24 +1,42 @@
 const discord = require("discord.js");
 const config = require("./config.json");
 const {Client, GatewayIntentBits} = require("discord.js");
+const file = require('fs');
+var date = new Date();
+var month = date.getMonth() + 1;
+var day = date.getDate();
+var timestamp = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}:${date.getMilliseconds()}`;
 
 const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]});
 
-const prefix = "/";
+const prefix = "!"; //change back to slash when done testing
 const commandList = "Syllabus\nWelcome\nRoll";
 console.log("starting");
 
 client.on("messageCreate", function(message)
 {
-    console.log(message.content);
+    if (config.USER && message.author.id != config.USER)
+    {
+        return;
+    }
+    file.appendFile(`logs/${month}-${day}.txt`, `${timestamp}: ${message.author.username} (${message.author.id}): ${message.content}\n`, err =>
+    {
+        if (err)
+        {
+            console.error(err);
+        }
+    });
+
+    client.user.setActivity("!syllabus");
+    //console.log(message.content);
     if (message.author.bot)
     {
-        console.log("Bot message");
+        //console.log("Bot message");
         return;
     }
     if (!message.content.startsWith(prefix))
     {
-        console.log("not a command");
+        //console.log("not a command");
         return;
     }
 
@@ -28,13 +46,13 @@ client.on("messageCreate", function(message)
 
     if (command == "welcome")
     {
-        console.log("ping command");
+        //console.log("ping command");
         const timeTaken = Date.now() - message.createdTimestamp;
         message.reply(`This message had a latency of ${timeTaken}ms`);
     }
     if (command == "roll")
     {
-        console.log("roll command");
+        //console.log("roll command");
         error = 0;
 
         if (!args[0])
@@ -50,9 +68,9 @@ client.on("messageCreate", function(message)
             return;
         }
         const subArgs = arg.split('d');
-        console.log(subArgs[0]);
+        //console.log(subArgs[0]);
         //console.log(args[0][1]);
-        console.log(subArgs[2]);
+        //console.log(subArgs[2]);
 
         number = parseInt(subArgs[0]);
         //keyword = args[0][1];
@@ -140,7 +158,7 @@ client.on("messageCreate", function(message)
         }
         else
         {
-            message.channel.send(`Press '/' followed by a command to run it.\nType /syllabus [commandName] for help with a specific command\nCommands:\n${commandList}`);
+            message.channel.send(`Press '!' followed by a command to run it.\nType !syllabus [commandName] for help with a specific command\nCommands:\n${commandList}`);
         }
         
     }
@@ -162,10 +180,10 @@ function commandHelp(arg)
     }
     if (arg === "welcome")
     {
-        return("Checks your latency\nFormat: /welcome");
+        return("Checks your latency\nFormat: !welcome");
     }
     if (arg === "roll")
     {
-        return("Roll the dice\nFormat: /roll [number of die]d[number of sides] (+/-[modifier])");
+        return("Roll the dice\nFormat: !roll [number of die]d[number of sides] (+/-[modifier])");
     }
 }
