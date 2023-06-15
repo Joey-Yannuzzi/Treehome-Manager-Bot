@@ -6,6 +6,11 @@ const {joinVoiceChannel} = require('@discordjs/voice');
 const {VoiceConnectionStatus, AudioPlayerStatus} = require('@discordjs/voice');
 const {createAudioPlayer, createAudioResource} = require('@discordjs/voice');
 const play = require('play-dl');
+const file = require('fs');
+var date = new Date();
+var month = date.getMonth() + 1;
+var day = date.getDate();
+var timestamp = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}:${date.getMilliseconds()}`;
 
 const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates]});
 
@@ -16,6 +21,8 @@ var connection;
 var subscription;
 var queue = [];
 
+const prefix = "!"; //change back to slash when done testing
+const commandList = "Syllabus\nWelcome\nRoll";
 console.log("starting");
 
 client.on("messageCreate", async function(message)
@@ -25,6 +32,15 @@ client.on("messageCreate", async function(message)
         return;
     }
 
+    file.appendFile(`logs/${month}-${day}.txt`, `${timestamp}: ${message.author.username} (${message.author.id}): ${message.content}\n`, err =>
+    {
+        if (err)
+        {
+            console.error(err);
+        }
+    });
+
+    client.user.setActivity("!syllabus");
     //console.log(message.content);
     if (message.author.bot)
     {
