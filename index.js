@@ -1,6 +1,5 @@
 const discord = require("discord.js");
 const config = require("./config.json");
-const file = require('fs');
 const {Client, GatewayIntentBits} = require("discord.js");
 const {joinVoiceChannel} = require('@discordjs/voice');
 const {VoiceConnectionStatus, AudioPlayerStatus} = require('@discordjs/voice');
@@ -12,7 +11,7 @@ var month = date.getMonth() + 1;
 var day = date.getDate();
 var timestamp = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}:${date.getMilliseconds()}`;
 
-const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates]});
+const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]});
 
 const prefix = "!";
 const commandList = "Syllabus\nWelcome\nRoll\nPlay\nPause\nStop\nSkip";
