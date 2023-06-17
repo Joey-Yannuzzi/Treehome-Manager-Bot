@@ -6,6 +6,11 @@ const {joinVoiceChannel} = require('@discordjs/voice');
 const {VoiceConnectionStatus, AudioPlayerStatus} = require('@discordjs/voice');
 const {createAudioPlayer, createAudioResource} = require('@discordjs/voice');
 const play = require('play-dl');
+const file = require('fs');
+var date = new Date();
+var month = date.getMonth() + 1;
+var day = date.getDate();
+var timestamp = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}:${date.getMilliseconds()}`;
 
 const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates]});
 
@@ -15,7 +20,6 @@ const player = createAudioPlayer();
 var connection;
 var subscription;
 var queue = [];
-
 console.log("starting");
 
 client.on("messageCreate", async function(message)
@@ -24,8 +28,9 @@ client.on("messageCreate", async function(message)
     {
         return;
     }
-
     //console.log(message.content);
+    client.user.setActivity("!syllabus");
+    
     if (message.author.bot)
     {
         //console.log("Bot message");
