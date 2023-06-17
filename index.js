@@ -1,5 +1,6 @@
 const discord = require("discord.js");
 const config = require("./config.json");
+const file = require('fs');
 const {Client, GatewayIntentBits} = require("discord.js");
 const {joinVoiceChannel} = require('@discordjs/voice');
 const {VoiceConnectionStatus, AudioPlayerStatus} = require('@discordjs/voice');
@@ -11,7 +12,7 @@ var month = date.getMonth() + 1;
 var day = date.getDate();
 var timestamp = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}:${date.getMilliseconds()}`;
 
-const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]});
+const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates]});
 
 const prefix = "!";
 const commandList = "Syllabus\nWelcome\nRoll\nPlay\nPause\nStop\nSkip";
@@ -19,9 +20,6 @@ const player = createAudioPlayer();
 var connection;
 var subscription;
 var queue = [];
-
-const prefix = "!"; //change back to slash when done testing
-const commandList = "Syllabus\nWelcome\nRoll";
 console.log("starting");
 
 client.on("messageCreate", async function(message)
@@ -30,17 +28,9 @@ client.on("messageCreate", async function(message)
     {
         return;
     }
-
-    file.appendFile(`logs/${month}-${day}.txt`, `${timestamp}: ${message.author.username} (${message.author.id}): ${message.content}\n`, err =>
-    {
-        if (err)
-        {
-            console.error(err);
-        }
-    });
-
-    client.user.setActivity("!syllabus");
     //console.log(message.content);
+    client.user.setActivity("!syllabus");
+    
     if (message.author.bot)
     {
         //console.log("Bot message");
