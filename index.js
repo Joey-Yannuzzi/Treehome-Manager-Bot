@@ -1,19 +1,30 @@
 const discord = require("discord.js");
 const config = require("./config.json");
+const file = require('fs');
 const {Client, GatewayIntentBits} = require("discord.js");
+const {joinVoiceChannel} = require('@discordjs/voice');
+const {VoiceConnectionStatus, AudioPlayerStatus} = require('@discordjs/voice');
+const {createAudioPlayer, createAudioResource} = require('@discordjs/voice');
+const play = require('play-dl');
 
-const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]});
+const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates]});
 
 const prefix = "!";
-const commandList = "Syllabus\nWelcome\nRoll";
+const commandList = "Syllabus\nWelcome\nRoll\nPlay\nPause\nStop\nSkip";
+const player = createAudioPlayer();
+var connection;
+var subscription;
+var queue = [];
+
 console.log("starting");
 
-client.on("messageCreate", function(message)
+client.on("messageCreate", async function(message)
 {
     if (config.USER && message.author.id != config.USER)
     {
         return;
     }
+
     //console.log(message.content);
     if (message.author.bot)
     {
@@ -148,6 +159,170 @@ client.on("messageCreate", function(message)
         }
         
     }
+
+    if (command == "play")
+    {
+        if (!message.member.voice.channelId)
+        {
+            message.channel.send("Error: you must be in a voice channel to manage songs");
+            return;
+        }
+        if (player.state.status === AudioPlayerStatus.Paused)
+        {
+            player.unpause();
+            message.channel.send("Unpausing");
+            return;
+        }
+
+        var song = args;
+
+        if (!song[0])
+        {
+            message.channel.send("Error: no song requested");
+            return;
+        }
+
+        connection = joinVoiceChannel(
+        {
+            channelId: message.member.voice.channel.id,
+            guildId: message.member.voice.channel.guild.id,
+            adapterCreator: message.member.voice.channel.guild.voiceAdapterCreator,
+        });
+        //console.log("join command");
+        connection.on(VoiceConnectionStatus.Ready, (oldState, newState) =>
+    {
+        //console.log("ready state");
+    });
+
+    /*if (song)
+    {
+        let stream = await play.stream(song);
+        let source = createAudioResource(stream.stream,
+            {
+                inputType: stream.type
+            });
+
+        player.play(source);
+    }*/
+    if (song)
+    {
+        let oneStringSong = "";
+
+        for (var bogus = 0; bogus < song.length; bogus++)
+        {
+            oneStringSong += song[bogus] + " ";
+        }
+
+        //console.log(oneStringSong);
+        let info = await play.search(oneStringSong, {limit: 1});
+        let stream = await play.stream(info[0].url);
+        let source = createAudioResource(stream.stream,
+            {
+                metadata:
+                {
+                    url: info[0].url,
+                },
+                inputType: stream.type
+            });
+
+        queue.push(source);
+        if (player.state.status === AudioPlayerStatus.Idle)
+        {
+            player.play(queue.shift());
+            message.channel.send(`Playing ${info[0].url}`);
+            subscription = connection.subscribe(player);
+        }
+        else
+        {
+            message.channel.send(`${info[0].url} queued`);
+        }
+
+        //console.log(queue);
+
+        //console.log(queue);
+        //player.play(source);
+    }
+        //playAudio(connection, player, song, message);
+    }
+    if (command == "pause")
+    {
+        if (!message.member.voice.channelId)
+        {
+            message.channel.send("Error: you must be in a voice channel to manage songs");
+            return;
+        }
+        if (player.state.status === AudioPlayerStatus.Paused)
+        {
+            message.channel.send("Error: Song already paused");
+            return;
+        }
+        if (player.state.status === AudioPlayerStatus.Idle)
+        {
+            message.channel.send("Error: no song playing");
+            return;
+        }
+        //console.log("pause command");
+        player.pause();
+        message.channel.send("Pausing");
+        //setTimeout(() => player.unpause(), 5_000);
+    }
+    if (command == "stop")
+    {
+        if (!message.member.voice.channelId)
+        {
+            message.channel.send("Error: you must be in a voice channel to manage songs");
+            return;
+        }
+        if (player.state.status === AudioPlayerStatus.Idle)
+        {
+            message.channel.send("Error: no song playing");
+            return;
+        }
+        
+        queue = [];
+        //console.log("stop command");
+        player.stop();
+        message.channel.send("Stopping");
+        //console.log(queue);
+    }
+    if (command == "skip")
+    {
+        if (!message.member.voice.channelId)
+        {
+            message.channel.send("Error: you must be in a voice channel to manage songs");
+            return;
+        }
+        var nextSong = queue.shift();
+
+        if (!nextSong)
+        {
+            message.channel.send("End of queue reached");
+            player.stop();
+            //connection.destroy();
+            //console.log(queue);
+            return;
+        }
+
+        message.channel.send("Song skipped");
+
+        //console.log(queue);
+        message.channel.send(`Now playing ${nextSong.metadata.url}`);
+        player.play(nextSong);
+    }
+
+    player.on(AudioPlayerStatus.Idle, () =>
+    {
+        var nextSong = queue.shift();
+
+        if (!nextSong)
+        {
+            //message.channel.send("End of queue reached");
+            return;
+        }
+
+        message.channel.send(`Now playing ${nextSong.metadata.url}`);
+        player.play(nextSong);
+    });
 });
 client.login(config.TOKEN);
 
@@ -171,5 +346,22 @@ function commandHelp(arg)
     if (arg === "roll")
     {
         return("Roll the dice\nFormat: !roll [number of die]d[number of sides] (+/-[modifier])");
+    }
+
+    if (arg === "play")
+    {
+        return("Play a song from youtube or add it to the queue (must be in a voice channel)\nFormat: !play [song name or url]\nOR\nUnpause a song (must be in a voice channel)\nFormat: !play");
+    }
+    if (arg === "pause")
+    {
+        return("Pause the song (must be in a voice channel)\nFormat: !pause");
+    }
+    if (arg === "stop")
+    {
+        return("Stop the song and wipe the queue (must be in a voice channel)\nFormat: !stop");
+    }
+    if (arg === "skip")
+    {
+        return("Skips the song (must be in a voice channel)\nFormat: !skip");
     }
 }
