@@ -6,11 +6,6 @@ const {joinVoiceChannel} = require('@discordjs/voice');
 const {VoiceConnectionStatus, AudioPlayerStatus} = require('@discordjs/voice');
 const {createAudioPlayer, createAudioResource} = require('@discordjs/voice');
 const play = require('play-dl');
-const file = require('fs');
-var date = new Date();
-var month = date.getMonth() + 1;
-var day = date.getDate();
-var timestamp = `${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}:${date.getMilliseconds()}`;
 
 const client = new discord.Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates]});
 
@@ -21,6 +16,7 @@ var connection;
 var subscription;
 var queue = [];
 console.log("starting");
+var songChanged = false;
 
 client.on("messageCreate", async function(message)
 {
@@ -227,15 +223,17 @@ client.on("messageCreate", async function(message)
                 {
                     url: info[0].url,
                 },
-                inputType: stream.type
+                inputType: stream.type,
+                inlineVolume: true
             });
 
+        source.volume.setVolume(0.05);
         queue.push(source);
         if (player.state.status === AudioPlayerStatus.Idle)
         {
             player.play(queue.shift());
             message.channel.send(`Playing ${info[0].url}`);
-            subscription = connection.subscribe(player);
+            connection.subscribe(player);
         }
         else
         {
@@ -298,6 +296,7 @@ client.on("messageCreate", async function(message)
             return;
         }
         var nextSong = queue.shift();
+        //player.stop();
 
         if (!nextSong)
         {
@@ -313,11 +312,19 @@ client.on("messageCreate", async function(message)
         //console.log(queue);
         message.channel.send(`Now playing ${nextSong.metadata.url}`);
         player.play(nextSong);
+        connection.subscribe(player);
     }
 
     player.on(AudioPlayerStatus.Idle, () =>
     {
+        if (songChanged)
+        {
+            console.log("not yet");
+            return;
+        }
+        console.log("playing next song");
         var nextSong = queue.shift();
+        //player.stop();
 
         if (!nextSong)
         {
@@ -327,7 +334,37 @@ client.on("messageCreate", async function(message)
 
         message.channel.send(`Now playing ${nextSong.metadata.url}`);
         player.play(nextSong);
+        connection.subscribe(player);
+        songChanged = true;
     });
+
+    player.on(AudioPlayerStatus.Playing, () =>
+    {
+        if (!songChanged)
+        {
+            return;
+        }
+        songChanged = false;
+        console.log("stalled successfully");
+    })
+
+    player.on('error', error =>
+    {
+        message.channel.send(`Error with ${nextSong.metadata.url} playback`);
+
+        var nextSong = queue.shift();
+        //player.stop();
+
+        if (!nextSong)
+        {
+            message.channel.send("End of queue reached");
+            return;
+        }
+
+        message.channel.send(`Now playing ${nextSong.metadata.url}`);
+        player.play(nextSong);
+        connection.subscribe(player);
+    })
 });
 client.login(config.TOKEN);
 
